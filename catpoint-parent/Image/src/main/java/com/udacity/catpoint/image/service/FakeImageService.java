@@ -9,7 +9,7 @@ import java.util.Random;
 public class FakeImageService {
     private final Random r = new Random();
 
-    public boolean imageContainsCat(BufferedImage image, float confidenceThreshhold) {
+    public boolean imageContainsCat(BufferedImage image, float confidenceThreshold) {
         return r.nextBoolean();
     }
 }
