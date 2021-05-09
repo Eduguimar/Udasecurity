@@ -2,6 +2,7 @@ package com.udacity.catpoint.security.service;
 
 
 import com.udacity.catpoint.image.service.ImageService;
+import com.udacity.catpoint.security.application.StatusListener;
 import com.udacity.catpoint.security.data.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,9 @@ public class SecurityServiceTest {
     private final String random = UUID.randomUUID().toString();
 
     @Mock
+    private StatusListener statusListener;
+
+    @Mock
     private ImageService imageService;
 
     @Mock
@@ -60,7 +64,7 @@ public class SecurityServiceTest {
 
     // Test 1
     @Test
-    void ifAlarmArmedAndSensorActivated_changeStatusToPending() {
+    void ifSystemArmedAndSensorActivated_changeStatusToPending() {
         when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.ARMED_HOME);
         when(securityRepository.getAlarmStatus()).thenReturn(AlarmStatus.NO_ALARM);
         securityService.changeSensorActivationStatus(sensor, true);
@@ -163,6 +167,37 @@ public class SecurityServiceTest {
 
         verify(securityRepository, times(1)).setAlarmStatus(AlarmStatus.ALARM);
     }
-}
 
-    //If pending alarm and all sensors are inactive, return to no alarm state
+    //extra tests to cover the whole SecurityService class
+    //Status Listener test
+    @Test
+    void addAndRemoveStatusListener() {
+        securityService.addStatusListener(statusListener);
+        securityService.removeStatusListener(statusListener);
+    }
+    //Sensor Listener test
+    @Test
+    void addAndRemoveSensor() {
+        securityService.addSensor(sensor);
+        securityService.removeSensor(sensor);
+    }
+    //System disarmed Test
+    @ParameterizedTest
+    @EnumSource(value = AlarmStatus.class, names = {"NO_ALARM", "PENDING_ALARM"})
+    void ifSystemDisarmedAndSensorActivated_noChangesToArmingState(AlarmStatus status) {
+        when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.DISARMED);
+        when(securityRepository.getAlarmStatus()).thenReturn(status);
+        securityService.changeSensorActivationStatus(sensor, true);
+
+        verify(securityRepository, never()).setArmingStatus(ArmingStatus.DISARMED);
+    }
+    //System deactivated and Alarm state test
+    @Test
+    void ifAlarmStateAndSystemDisarmed_changeStatusToPending() {
+        when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.DISARMED);
+        when(securityRepository.getAlarmStatus()).thenReturn(AlarmStatus.ALARM);
+        securityService.changeSensorActivationStatus(sensor);
+
+        verify(securityRepository, times(1)).setAlarmStatus(AlarmStatus.PENDING_ALARM);
+    }
+}

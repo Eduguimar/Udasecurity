@@ -118,8 +118,11 @@ public class SecurityService {
      */
     public void changeSensorActivationStatus(Sensor sensor) {
         AlarmStatus actualAlarmStatus = this.getAlarmStatus();
+        ArmingStatus actualArmingStatus = this.getArmingStatus();
 
         if (actualAlarmStatus == AlarmStatus.PENDING_ALARM && !sensor.getActive()) {
+            handleSensorDeactivated();
+        } else if (actualAlarmStatus == AlarmStatus.ALARM && actualArmingStatus == ArmingStatus.DISARMED) {
             handleSensorDeactivated();
         }
         securityRepository.updateSensor(sensor);
@@ -131,7 +134,7 @@ public class SecurityService {
      * @param active
      */
     public void changeSensorActivationStatus(Sensor sensor, Boolean active) {
-        AlarmStatus actualAlarmStatus = this.getAlarmStatus();
+        AlarmStatus actualAlarmStatus = securityRepository.getAlarmStatus();
 
         if(actualAlarmStatus != AlarmStatus.ALARM) {
             if((!sensor.getActive() && active) || (sensor.getActive() && active)) {
@@ -139,10 +142,16 @@ public class SecurityService {
             } else if (sensor.getActive() && !active) {
                 handleSensorDeactivated();
             }
+        } else {
+
         }
         sensor.setActive(active);
         securityRepository.updateSensor(sensor);
     }
+
+//    public void changeArmingStatus(ArmingStatus status) {
+//        if ()
+//    }
 
     /**
      * Send an image to the SecurityService for processing. The securityService will use its provided
