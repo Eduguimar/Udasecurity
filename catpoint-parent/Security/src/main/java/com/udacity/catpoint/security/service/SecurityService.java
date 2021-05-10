@@ -31,11 +31,6 @@ public class SecurityService {
         this.imageService = imageService;
     }
 
-    private Set<Sensor> getActiveSensors() {
-        Set<Sensor> sensors = getSensors().stream().filter(Sensor::getActive).collect(Collectors.toSet());
-        return sensors;
-    }
-
     /**
      * Sets the current arming status for the system. Changing the arming status
      * may update both the alarm status.
@@ -45,13 +40,21 @@ public class SecurityService {
         if(armingStatus == ArmingStatus.DISARMED) {
             setAlarmStatus(AlarmStatus.NO_ALARM);
         } else {
-            changeSensorsStatus(this.getActiveSensors(), false);
+            Set<Sensor> sensors = getSensors().stream().map(sensor -> {
+                sensor.setActive(false);
+                return sensor;
+            }).collect(Collectors.toSet());
+            sensors.forEach(sensor -> securityRepository.updateSensor(sensor));
         }
         securityRepository.setArmingStatus(armingStatus);
     }
 
     private void changeSensorsStatus(Set<Sensor>sensors, boolean active) {
         sensors.stream().forEach(sensor -> changeSensorActivationStatus(sensor, active));
+    }
+
+    private boolean getAllSensorsFromState(boolean state) {
+        return getSensors().stream().allMatch(sensor -> sensor.getActive() == state);
     }
 
     /**
@@ -62,7 +65,7 @@ public class SecurityService {
     private void catDetected(Boolean cat) {
         if(cat && getArmingStatus() == ArmingStatus.ARMED_HOME) {
             setAlarmStatus(AlarmStatus.ALARM);
-        } else {
+        } else if(!cat && getAllSensorsFromState(false)) {
             setAlarmStatus(AlarmStatus.NO_ALARM);
         }
 

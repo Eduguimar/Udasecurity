@@ -130,10 +130,10 @@ public class SecurityServiceTest {
     // Test 8
     @Test
     void ifImageServiceIdentifiesNoCatImage_changeStatusToNoAlarmAsLongSensorsNotActive() {
-        BufferedImage image = new BufferedImage(256, 256, BufferedImage.TYPE_INT_RGB);
+        Set<Sensor> sensors = getAllSensors(3, false);
+        when(securityRepository.getSensors()).thenReturn(sensors);
         when(imageService.imageContainsCat(any(), ArgumentMatchers.anyFloat())).thenReturn(false);
-        sensor.setActive(false);
-        securityService.processImage(image);
+        securityService.processImage(mock(BufferedImage.class));
 
         verify(securityRepository, times(1)).setAlarmStatus(AlarmStatus.NO_ALARM);
     }
@@ -149,7 +149,6 @@ public class SecurityServiceTest {
     @EnumSource(value = ArmingStatus.class, names = {"ARMED_HOME", "ARMED_AWAY"})
     void ifSystemArmed_resetSensorsToInactive(ArmingStatus status) {
         Set<Sensor> sensors = getAllSensors(3, true);
-        when(securityRepository.getAlarmStatus()).thenReturn(AlarmStatus.PENDING_ALARM);
         when(securityRepository.getSensors()).thenReturn(sensors);
         securityService.setArmingStatus(status);
 
