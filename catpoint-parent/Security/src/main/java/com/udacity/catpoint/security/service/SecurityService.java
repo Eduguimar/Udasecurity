@@ -11,6 +11,7 @@ import com.udacity.catpoint.security.data.Sensor;
 import java.awt.image.BufferedImage;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Collectors;
 
 /**
@@ -40,18 +41,16 @@ public class SecurityService {
         if(armingStatus == ArmingStatus.DISARMED) {
             setAlarmStatus(AlarmStatus.NO_ALARM);
         } else {
-            Set<Sensor> sensors = getSensors().stream().map(sensor -> {
-                sensor.setActive(false);
-                return sensor;
-            }).collect(Collectors.toSet());
-            sensors.forEach(sensor -> securityRepository.updateSensor(sensor));
+            ConcurrentSkipListSet<Sensor> sensors = new ConcurrentSkipListSet<>(getSensors());
+            sensors.forEach(sensor -> changeSensorActivationStatus(sensor, false));
         }
         securityRepository.setArmingStatus(armingStatus);
+        statusListeners.forEach(sl -> sl.sensorStatusChanged());
     }
 
-    private void changeSensorsStatus(Set<Sensor>sensors, boolean active) {
-        sensors.stream().forEach(sensor -> changeSensorActivationStatus(sensor, active));
-    }
+//    private void changeSensorsStatus(Set<Sensor>sensors, boolean active) {
+//        sensors.stream().forEach(sensor -> changeSensorActivationStatus(sensor, active));
+//    }
 
     private boolean getAllSensorsFromState(boolean state) {
         return getSensors().stream().allMatch(sensor -> sensor.getActive() == state);
@@ -140,21 +139,22 @@ public class SecurityService {
         AlarmStatus actualAlarmStatus = securityRepository.getAlarmStatus();
 
         if(actualAlarmStatus != AlarmStatus.ALARM) {
-            if((!sensor.getActive() && active) || (sensor.getActive() && active)) {
+            if(active) {
                 handleSensorActivated();
-            } else if (sensor.getActive() && !active) {
+            } else if (sensor.getActive()) {
                 handleSensorDeactivated();
             }
-        } else {
-
         }
         sensor.setActive(active);
         securityRepository.updateSensor(sensor);
+        printAllSensors();
     }
 
-//    public void changeArmingStatus(ArmingStatus status) {
-//        if ()
-//    }
+    public void printAllSensors() {
+        ConcurrentSkipListSet<Sensor> sensors = new ConcurrentSkipListSet<>(getSensors());
+        sensors.forEach(sensor -> System.out.println(sensor.getName() + " " + sensor.getActive()));
+        System.out.println("________________________");
+    }
 
     /**
      * Send an image to the SecurityService for processing. The securityService will use its provided

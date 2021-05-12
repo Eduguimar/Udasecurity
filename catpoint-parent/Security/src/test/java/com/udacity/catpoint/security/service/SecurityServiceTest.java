@@ -73,7 +73,7 @@ public class SecurityServiceTest {
     }
     // Test 2
     @Test
-    void ifAlarmArmedAndSensorActivatedAndPendingState_changeStatusToAlarm() {
+    void ifSystemArmedAndSensorActivatedAndPendingState_changeStatusToAlarm() {
         when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.ARMED_HOME);
         when(securityRepository.getAlarmStatus()).thenReturn(AlarmStatus.PENDING_ALARM);
         securityService.changeSensorActivationStatus(sensor, true);
@@ -149,6 +149,7 @@ public class SecurityServiceTest {
     @EnumSource(value = ArmingStatus.class, names = {"ARMED_HOME", "ARMED_AWAY"})
     void ifSystemArmed_resetSensorsToInactive(ArmingStatus status) {
         Set<Sensor> sensors = getAllSensors(3, true);
+        when(securityRepository.getAlarmStatus()).thenReturn(AlarmStatus.PENDING_ALARM);
         when(securityRepository.getSensors()).thenReturn(sensors);
         securityService.setArmingStatus(status);
 
@@ -160,9 +161,9 @@ public class SecurityServiceTest {
     @Test
     void ifSystemArmedHomeWhileImageServiceIdentifiesCat_changeStatusToAlarm() {
         BufferedImage image = new BufferedImage(256, 256, BufferedImage.TYPE_INT_RGB);
-        when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.ARMED_HOME);
         when(imageService.imageContainsCat(any(),anyFloat())).thenReturn(true);
-        securityService.processImage(image);
+        when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.DISARMED);
+        securityService.setArmingStatus(ArmingStatus.ARMED_HOME);
 
         verify(securityRepository, times(1)).setAlarmStatus(AlarmStatus.ALARM);
     }
