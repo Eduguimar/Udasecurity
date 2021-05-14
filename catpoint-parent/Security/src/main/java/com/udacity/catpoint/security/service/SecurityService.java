@@ -26,6 +26,7 @@ public class SecurityService {
     private ImageService imageService;
     private SecurityRepository securityRepository;
     private Set<StatusListener> statusListeners = new HashSet<>();
+    private Boolean catDetection = false;
 
     public SecurityService(SecurityRepository securityRepository, ImageService imageService) {
         this.securityRepository = securityRepository;
@@ -38,6 +39,10 @@ public class SecurityService {
      * @param armingStatus
      */
     public void setArmingStatus(ArmingStatus armingStatus) {
+        if(catDetection && armingStatus == ArmingStatus.ARMED_HOME) {
+            setAlarmStatus(AlarmStatus.ALARM);
+        }
+
         if(armingStatus == ArmingStatus.DISARMED) {
             setAlarmStatus(AlarmStatus.NO_ALARM);
         } else {
@@ -47,10 +52,6 @@ public class SecurityService {
         securityRepository.setArmingStatus(armingStatus);
         statusListeners.forEach(sl -> sl.sensorStatusChanged());
     }
-
-//    private void changeSensorsStatus(Set<Sensor>sensors, boolean active) {
-//        sensors.stream().forEach(sensor -> changeSensorActivationStatus(sensor, active));
-//    }
 
     private boolean getAllSensorsFromState(boolean state) {
         return getSensors().stream().allMatch(sensor -> sensor.getActive() == state);
@@ -62,6 +63,8 @@ public class SecurityService {
      * @param cat True if a cat is detected, otherwise false.
      */
     private void catDetected(Boolean cat) {
+        catDetection = cat;
+
         if(cat && getArmingStatus() == ArmingStatus.ARMED_HOME) {
             setAlarmStatus(AlarmStatus.ALARM);
         } else if(!cat && getAllSensorsFromState(false)) {
@@ -147,13 +150,6 @@ public class SecurityService {
         }
         sensor.setActive(active);
         securityRepository.updateSensor(sensor);
-        printAllSensors();
-    }
-
-    public void printAllSensors() {
-        ConcurrentSkipListSet<Sensor> sensors = new ConcurrentSkipListSet<>(getSensors());
-        sensors.forEach(sensor -> System.out.println(sensor.getName() + " " + sensor.getActive()));
-        System.out.println("________________________");
     }
 
     /**
